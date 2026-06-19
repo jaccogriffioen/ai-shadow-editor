@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/jaccogriffioen/.nvm/versions/**)",
+      "Bash(find /opt /usr/local /usr/bin -name \"node\" -o -name \"npm\" 2>/dev/null | head -5)",
+      "Bash(brew install *)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(/opt/homebrew/bin/npm --version)",
+      "Bash(/opt/homebrew/bin/npm install *)",
+      "Bash(/opt/homebrew/bin/npm list *)",
+      "Bash(/opt/homebrew/bin/npm root *)",
+      "Bash(NODE_PATH=$\\(/opt/homebrew/bin/npm root -g\\) /opt/homebrew/bin/node \"/Users/jaccogriffioen/Documents/AI tooling projects/Shadow editor/generate_report.js\")",
+      "Bash(python3 -m pip --version)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://esm.sh/preact)",
+      "Bash(venv/bin/python -m pip list)",
+      "Bash(venv/bin/python --version)",
+      "Bash(venv/bin/python -m pip install --quiet sqlalchemy fal-client \"websockets>=12\")",
+      "Bash(venv/bin/python -c \"import sqlalchemy, fal_client, websockets; print\\('sqlalchemy', sqlalchemy.__version__\\); print\\('fal_client ok'\\); print\\('websockets ok'\\)\")",
+      "Bash(venv/bin/python -c ' *)",
+      "Bash(venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000 --log-level info)",
+      "Bash(curl -s http://127.0.0.1:8000/api/status)",
+      "Bash(venv/bin/python -m json.tool)",
+      "Bash(pkill -f \"uvicorn backend.main\")",
+      "Bash(venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000 --log-level warning)",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" http://127.0.0.1:8000/api/status)",
+      "Bash(curl -s -o /dev/null -w \"server alive: %{http_code}\\\\n\" http://127.0.0.1:8000/api/status)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(curl -s -o /dev/null -w \"page: %{http_code}\\\\n\" http://127.0.0.1:8000/)",
+      "Bash(curl -s http://127.0.0.1:8000/static/app.js)",
+      "Bash(curl -s -o /dev/null -w \"esm.sh/preact: %{http_code}\\\\n\" \"https://esm.sh/preact@10.24.3\")"
+    ]
+  }
+}

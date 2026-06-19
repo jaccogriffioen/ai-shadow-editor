@@ -1,0 +1,16 @@
+# Secrets — never commit
+.env
+
+# App data (database, processed images, thumbnails)
+data/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# OS
+.DS_Store

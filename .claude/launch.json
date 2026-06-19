@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "shadow-editor",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-lc",
+        "cd \"/Users/jaccogriffioen/Documents/AI tooling projects/Shadow editor\" && exec venv/bin/python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000"
+      ],
+      "port": 8000
+    }
+  ]
+}
