@@ -10,14 +10,19 @@ web app at `http://localhost:8000`.
 
 ## Demos
 
-Screen recordings (click to play in GitHub's viewer):
+**Generative editing approach** (current) — choose a fal.ai editing model and an
+editable prompt per batch:
 
-- ▶︎ **[Generative editing approach](demos/demo-generative-models.mp4)** (current) —
-  choose a fal.ai editing model and an editable prompt per batch.
-- ▶︎ **[Image-processing approach](demos/demo-image-processing.mp4)** — background
-  removal (BRIA / rembg) + a programmatic shadow composite. This is the version
-  tagged [`image-processing`](../../tree/image-processing); see
-  [Testing the image-processing approach](#testing-the-image-processing-approach).
+https://github.com/user-attachments/assets/ec54acad-1c5f-437d-b87d-691eaccbbcd1
+
+**Image-processing approach** — background removal (BRIA / rembg) + a programmatic
+shadow composite. This is the version tagged
+[`image-processing`](../../tree/image-processing); see
+[Testing the image-processing approach](#testing-the-image-processing-approach):
+
+https://github.com/user-attachments/assets/5ea7da7a-3db5-49dd-ac15-cab4d64ed86c
+
+<sub>Downloadable copies live in [`demos/`](demos/).</sub>
 
 ## How it works
 
