@@ -7,7 +7,3 @@ requests>=2.31
 python-multipart>=0.0.9
 pillow>=10
 numpy>=1.26
-
-# Local (offline) background removal — used by the default "rembg" method
-rembg[cpu]>=2.0
-onnxruntime>=1.17
