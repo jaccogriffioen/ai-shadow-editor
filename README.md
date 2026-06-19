@@ -10,14 +10,20 @@ web app at `http://localhost:8000`.
 
 ## Demos
 
-Short screen recordings in [`demos/`](demos/) (click to play on GitHub):
+**Generative editing approach** (current) — choose a fal.ai editing model and an
+editable prompt per batch:
 
-- **[Generative editing approach](demos/demo-generative-models.mp4)** — the current
-  version: choose a fal.ai editing model and an editable prompt per batch.
-- **[Image-processing approach](demos/demo-image-processing.mp4)** — background
-  removal (BRIA / rembg) + a programmatic shadow composite. This is the version
-  tagged [`image-processing`](../../tree/image-processing); see
-  [Testing the image-processing approach](#testing-the-image-processing-approach).
+https://github.com/jaccogriffioen/ai-shadow-editor/releases/download/v0.1.0/demo-generative-models.mp4
+
+**Image-processing approach** — background removal (BRIA / rembg) + a programmatic
+shadow composite. This is the version tagged
+[`image-processing`](../../tree/image-processing); see
+[Testing the image-processing approach](#testing-the-image-processing-approach):
+
+https://github.com/jaccogriffioen/ai-shadow-editor/releases/download/v0.1.0/demo-image-processing.mp4
+
+<sub>Videos also live in [`demos/`](demos/) and on the
+[v0.1.0 release](../../releases/tag/v0.1.0).</sub>
 
 ## How it works
 
