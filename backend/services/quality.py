@@ -1,13 +1,13 @@
-"""Automated quality checks that decide whether a result is flagged.
+"""Automated quality checks that decide whether an edited image is flagged.
 
 Philosophy (per spec): flag aggressively. It is better to flag a good image
 (the reviewer unflags it in seconds) than to let a bad one through.
 
-Checks (numpy, no OpenCV dependency):
-  1. Cutout sanity   — subject too small / nothing removed (removal failed)
-  2. Edge integrity  — rough/see-through silhouette on the cutout
-  3. Shadow reduction — output still as dark as the original (shadow not reduced)
-  4. Background uniformity — patchy / artifacted output background
+With instruction editing the model returns a full edited image, so the checks
+compare the original against the result:
+  1. No-change      — the model returned essentially the same image (edit failed)
+  2. Shadow reduction — the result is still as dark as the original (shadow kept)
+  3. Background uniformity — the result background is patchy / artifacted
 """
 from __future__ import annotations
 
@@ -28,34 +28,22 @@ def _border_pixels(arr: np.ndarray, frac: float = 0.05) -> np.ndarray:
     ], axis=0)
 
 
-def check_cutout(cutout: Image.Image) -> list[str]:
-    """Heuristics on the RGBA cutout produced by background removal."""
-    reasons: list[str] = []
-    alpha = np.array(cutout.split()[3])
-    subject = np.sum(alpha > 10)
-    ratio = subject / max(alpha.size, 1)
-
-    if ratio < 0.02:
-        reasons.append("Subject too small — background removal may have failed")
-    elif ratio > 0.97:
-        reasons.append("Almost nothing removed — product may blend into background")
-
-    transition = np.sum((alpha > 10) & (alpha < 245))
-    edge_ratio = transition / max(subject, 1)
-    if edge_ratio > 0.35:
-        reasons.append(
-            f"Product edges look rough (transition={edge_ratio:.2f}) — "
-            "possible transparent/reflective packaging"
-        )
-    return reasons
-
-
 def _dark_fraction(image: Image.Image, threshold: float = 35.0) -> float:
+    """Fraction of pixels meaningfully darker than the border background."""
     arr = np.array(image.convert("RGB")).astype(np.float32)
     border = _border_pixels(arr)
     bg_lum = float(np.median(_luminance(border.reshape(1, -1, 3))))
     lum = _luminance(arr)
     return float(np.mean((bg_lum - lum) > threshold))
+
+
+def check_no_change(original: Image.Image, result: Image.Image) -> list[str]:
+    a = np.asarray(original.convert("RGB").resize((256, 256))).astype(np.float32)
+    b = np.asarray(result.convert("RGB").resize((256, 256))).astype(np.float32)
+    diff = float(np.mean(np.abs(a - b)))
+    if diff < 3.0:
+        return ["AI made little or no visible change to the image"]
+    return []
 
 
 def check_shadow_reduction(original: Image.Image, result: Image.Image) -> list[str]:
@@ -80,17 +68,11 @@ def check_background_uniformity(result: Image.Image) -> list[str]:
     return []
 
 
-def evaluate(original: Image.Image, result: Image.Image, cutout: Image.Image | None) -> list[str]:
-    """Run all applicable checks and return a list of flag reasons.
-    An empty list means the image passed.
-
-    Note: with cutout + composite the original shadow is physically removed
-    (the product is cut out), so a "shadow not reduced" comparison does not
-    apply — quality here is about whether the cutout and the new background are
-    clean. check_shadow_reduction is kept for reference but not used.
-    """
+def evaluate(original: Image.Image, result: Image.Image) -> list[str]:
+    """Run all checks and return a list of flag reasons.
+    An empty list means the image passed."""
     reasons: list[str] = []
-    if cutout is not None:
-        reasons += check_cutout(cutout)
+    reasons += check_no_change(original, result)
+    reasons += check_shadow_reduction(original, result)
     reasons += check_background_uniformity(result)
     return reasons

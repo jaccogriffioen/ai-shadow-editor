@@ -13,7 +13,7 @@ from sqlalchemy import func
 
 from .. import config, models
 from ..database import SessionLocal
-from . import quality, removal, shadow
+from . import editing, quality
 from .ws import manager
 
 # batch_id -> control dict {"pause": bool, "cancel": bool, "task": asyncio.Task}
@@ -52,11 +52,12 @@ def counts(session, batch_id: int) -> dict:
 
 
 def process_image_sync(image_id: int, overrides: dict | None = None) -> dict:
-    """Run background removal + shadow compositing for one image in its own DB
-    session. Safe to call from a worker thread. Returns a small summary dict.
+    """Run the generative edit for one image in its own DB session.
+    Safe to call from a worker thread. Returns a small summary dict.
 
     `overrides` is a partial config merged over the batch config — used when
-    re-processing a single image with adjusted settings from the review screen.
+    re-processing a single image with an adjusted prompt or model from the
+    review screen.
     """
     session = SessionLocal()
     try:
@@ -66,13 +67,7 @@ def process_image_sync(image_id: int, overrides: dict | None = None) -> dict:
         batch = session.get(models.Batch, img.batch_id)
         cfg = {**config.DEFAULT_CONFIG, **batch.config}
         if overrides:
-            for key, value in overrides.items():
-                if value is None:
-                    continue
-                if isinstance(value, dict) and isinstance(cfg.get(key), dict):
-                    cfg[key] = {**cfg[key], **value}
-                else:
-                    cfg[key] = value
+            cfg = {**cfg, **{k: v for k, v in overrides.items() if v is not None}}
 
         img.status = "processing"
         session.commit()
@@ -80,15 +75,18 @@ def process_image_sync(image_id: int, overrides: dict | None = None) -> dict:
         original = PILImage.open(img.original_path)
         original.load()
 
-        method = config.resolve_removal(cfg.get("removal", "bria"))
-        if method["backend"] == "fal":
-            cutout = removal.remove_background_fal(img.original_path, method["model"])
-        else:  # local rembg
-            cutout = removal.remove_background_rembg(original)
-        cropped = shadow.crop_to_subject(cutout)
-        result = shadow.composite(cropped, cfg.get("shadow") or {})
+        model = cfg.get("fal_model") or config.DEFAULT_CONFIG["fal_model"]
+        # Only FLUX Kontext accepts guidance_scale; other models reject unknown args.
+        extra = {}
+        if "kontext" in model and cfg.get("guidance_scale") is not None:
+            extra["guidance_scale"] = cfg["guidance_scale"]
+        result = editing.edit_image_fal(
+            img.original_path, model,
+            cfg.get("prompt") or config.DEFAULT_PROMPT,
+            extra=extra,
+        )
 
-        reasons = quality.evaluate(original.convert("RGB"), result, cutout)
+        reasons = quality.evaluate(original.convert("RGB"), result)
 
         out_dir = config.batch_subdir(img.batch_id, "processed")
         out_path = out_dir / f"{image_id}.png"

@@ -26,13 +26,16 @@ function hexToRgb(hex) {
 const rgbToHex = (rgb) =>
   "#" + (rgb || [255, 255, 255]).map((v) => v.toString(16).padStart(2, "0")).join("");
 
-// Populated from /api/status (config.REMOVAL_MODELS). Fallback mirrors it.
-let REMOVAL_MODELS = [
-  { id: "bria", label: "fal.ai BRIA (recommended)" },
-  { id: "birefnet", label: "fal.ai BiRefNet" },
-  { id: "rembg", label: "Local rembg (free, offline)" },
+// Populated from /api/status (config.EDIT_MODELS). Fallback list mirrors it.
+let EDIT_MODELS = [
+  { id: "fal-ai/flux-pro/kontext", label: "FLUX.1 Kontext [pro]" },
+  { id: "fal-ai/flux-pro/kontext/max", label: "FLUX.1 Kontext [max]" },
+  { id: "fal-ai/flux-kontext/dev", label: "FLUX.1 Kontext [dev] (cheaper)" },
+  { id: "fal-ai/gemini-25-flash-image/edit", label: "Nano Banana (Gemini 2.5 Flash Image)" },
+  { id: "fal-ai/qwen-image-edit", label: "Qwen Image Edit" },
+  { id: "fal-ai/bytedance/seededit/v3/edit-image", label: "SeedEdit 3.0" },
 ];
-const modelLabel = (id) => REMOVAL_MODELS.find((m) => m.id === id)?.label || id;
+const modelLabel = (id) => EDIT_MODELS.find((m) => m.id === id)?.label || id;
 
 // --- Small UI pieces ---------------------------------------------------------
 const Btn = ({ onClick, children, kind = "primary", disabled, type }) => {
@@ -124,7 +127,7 @@ function Home({ navigate }) {
               </div>
               <div class="text-xs text-slate-500 mt-1">
                 ${b.counts.total} images · ${b.counts.done} done · ${b.counts.flagged} flagged · ${b.counts.approved} approved
-                · model: ${modelLabel(b.config.removal)}
+                · model: ${modelLabel(b.config.fal_model)}
               </div>
             </div>
             <div class="flex items-center gap-2">
@@ -156,18 +159,17 @@ const Slider = ({ label, value, min, max, step, onInput, fmt }) => html`
 
 function ConfigForm({ config, setConfig, falKeyPresent }) {
   const set = (k, v) => setConfig({ ...config, [k]: v });
-  const setShadow = (k, v) => setConfig({ ...config, shadow: { ...config.shadow, [k]: v } });
-  const usesFal = config.removal !== "rembg";
+  const isKontext = (config.fal_model || "").includes("kontext");
 
   return html`
     <div class="grid md:grid-cols-2 gap-6">
       <div>
-        <${Field} label="Background-removal model" hint="The product is cut out (removing the old shadow), then a clean small shadow is added. Use the preview below to test before the whole batch.">
-          <select value=${config.removal} onChange=${(e) => set("removal", e.target.value)}
+        <${Field} label="AI editing model" hint="The model that edits each image. Use the preview below to test it on one image before processing the whole batch.">
+          <select value=${config.fal_model} onChange=${(e) => set("fal_model", e.target.value)}
             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
-            ${REMOVAL_MODELS.map((m) => html`<option value=${m.id}>${m.label}</option>`)}
+            ${EDIT_MODELS.map((m) => html`<option value=${m.id}>${m.label}</option>`)}
           </select>
-          ${usesFal && !falKeyPresent && html`<div class="text-xs text-red-500 mt-1">No fal.ai API key detected on the server.</div>`}
+          ${!falKeyPresent && html`<div class="text-xs text-red-500 mt-1">No fal.ai API key detected on the server.</div>`}
         <//>
 
         <${Field} label="Output format" hint="Applied when you export approved images">
@@ -179,33 +181,17 @@ function ConfigForm({ config, setConfig, falKeyPresent }) {
             <option value="webp">WebP (recommended for web)</option>
           </select>
         <//>
+
+        ${isKontext && html`
+          <${Slider} label="Guidance scale" value=${config.guidance_scale ?? 3.5} min=1 max=10 step=0.5
+            onInput=${(v) => set("guidance_scale", v)} fmt=${(v) => v.toFixed(1)} />`}
       </div>
 
       <div>
-        <div class="text-sm font-medium text-slate-700 mb-2">Shadow style</div>
-        <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-          <${Field} label="Light direction">
-            <select value=${config.shadow.direction} onChange=${(e) => setShadow("direction", e.target.value)}
-              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
-              <option value="left">Light from left (shadow falls right)</option>
-              <option value="right">Light from right (shadow falls left)</option>
-            </select>
-          <//>
-          <${Slider} label="Shadow length" value=${config.shadow.length} min=0.15 max=1.2 step=0.05
-            onInput=${(v) => setShadow("length", v)} fmt=${(v) => v.toFixed(2)} />
-          <${Slider} label="Lean / angle" value=${config.shadow.skew} min=0 max=1.2 step=0.05
-            onInput=${(v) => setShadow("skew", v)} fmt=${(v) => v.toFixed(2)} />
-          <${Slider} label="Opacity" value=${config.shadow.opacity} min=0 max=1 step=0.05
-            onInput=${(v) => setShadow("opacity", v)} fmt=${(v) => Math.round(v * 100) + "%"} />
-          <${Slider} label="Softness (blur)" value=${config.shadow.blur} min=0 max=60 step=1
-            onInput=${(v) => setShadow("blur", v)} />
-          <div class="flex items-center gap-3 mt-2">
-            <span class="text-sm text-slate-700">Background</span>
-            <input type="color" value=${rgbToHex(config.shadow.bg_color)}
-              onInput=${(e) => setShadow("bg_color", hexToRgb(e.target.value))}
-              class="w-10 h-8 rounded border border-slate-300" />
-          </div>
-        </div>
+        <${Field} label="Editing instruction (prompt)" hint="Sent with every image in the batch. You can still override it per image during review.">
+          <textarea value=${config.prompt} onInput=${(e) => set("prompt", e.target.value)} rows="8"
+            class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm leading-relaxed"></textarea>
+        <//>
       </div>
     </div>`;
 }
@@ -514,11 +500,8 @@ function Review({ navigate, batchId }) {
 function Detail({ image, batch, onClose, onChange, setSelected }) {
   const [busy, setBusy] = useState("");
   const [t, setT] = useState(Date.now());
-  const [model, setModel] = useState(batch?.config?.removal || REMOVAL_MODELS[0].id);
-  const [direction, setDirection] = useState(batch?.config?.shadow?.direction || "left");
-  const [opacity, setOpacity] = useState(batch?.config?.shadow?.opacity ?? 0.3);
-  const [blur, setBlur] = useState(batch?.config?.shadow?.blur ?? 26);
-  const [length, setLength] = useState(batch?.config?.shadow?.length ?? 0.45);
+  const [prompt, setPrompt] = useState(batch?.config?.prompt || "");
+  const [model, setModel] = useState(batch?.config?.fal_model || EDIT_MODELS[0].id);
   const [reasons, setReasons] = useState(image.reasons || []);
   const [flagged, setFlagged] = useState(image.flagged);
   const [review, setReview] = useState(image.review_status);
@@ -532,7 +515,7 @@ function Detail({ image, batch, onClose, onChange, setSelected }) {
   const reprocess = () => act(async () => {
     setBusy("Reprocessing…");
     const r = await jpost(`/api/images/${image.id}/reprocess`, {
-      config: { removal: model, shadow: { direction, opacity, blur, length } },
+      config: { fal_model: model, prompt },
     });
     setT(Date.now()); setReasons(r.reasons || []); setFlagged(!!r.flagged); setReview("pending");
   });
@@ -571,28 +554,20 @@ function Detail({ image, batch, onClose, onChange, setSelected }) {
 
         <div class="px-5 pb-5">
           <details class="bg-slate-50 rounded-lg border border-slate-200 p-3">
-            <summary class="text-sm font-medium text-slate-700 cursor-pointer">Re-run this image with different settings</summary>
-            <div class="grid sm:grid-cols-2 gap-4 mt-3">
-              <${Field} label="Background-removal model">
+            <summary class="text-sm font-medium text-slate-700 cursor-pointer">Re-run this image with a different prompt or model</summary>
+            <div class="mt-3">
+              <${Field} label="Model">
                 <select value=${model} onChange=${(e) => setModel(e.target.value)}
                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                  ${REMOVAL_MODELS.map((m) => html`<option value=${m.id}>${m.label}</option>`)}
+                  ${EDIT_MODELS.map((m) => html`<option value=${m.id}>${m.label}</option>`)}
                 </select>
               <//>
-              <div>
-                <${Field} label="Light direction">
-                  <select value=${direction} onChange=${(e) => setDirection(e.target.value)}
-                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm">
-                    <option value="left">Light from left</option>
-                    <option value="right">Light from right</option>
-                  </select>
-                <//>
-                <${Slider} label="Shadow length" value=${length} min=0.15 max=1.2 step=0.05 onInput=${setLength} fmt=${(v) => v.toFixed(2)} />
-                <${Slider} label="Shadow opacity" value=${opacity} min=0 max=1 step=0.05 onInput=${setOpacity} fmt=${(v) => Math.round(v * 100) + "%"} />
-                <${Slider} label="Shadow softness" value=${blur} min=0 max=60 step=1 onInput=${setBlur} />
-              </div>
+              <${Field} label="Editing instruction (prompt)">
+                <textarea value=${prompt} onInput=${(e) => setPrompt(e.target.value)} rows="4"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
+              <//>
+              <${Btn} onClick=${reprocess} disabled=${!!busy}>Reprocess image<//>
             </div>
-            <${Btn} onClick=${reprocess} disabled=${!!busy}>Reprocess image<//>
           </details>
         </div>
       </div>
@@ -659,7 +634,7 @@ function App() {
 
   useEffect(() => {
     api("/api/status").then((m) => {
-      if (m.removal_models?.length) REMOVAL_MODELS = m.removal_models;
+      if (m.edit_models?.length) EDIT_MODELS = m.edit_models;
       setMeta(m);
     }).catch(() => {});
   }, []);

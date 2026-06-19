@@ -42,7 +42,7 @@ def status():
         "ok": True,
         "fal_key_present": bool(config.FAL_KEY),
         "default_config": config.DEFAULT_CONFIG,
-        "removal_models": config.REMOVAL_MODELS,
+        "edit_models": config.EDIT_MODELS,
     }
 
 

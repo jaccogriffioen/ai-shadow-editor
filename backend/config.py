@@ -33,58 +33,34 @@ _load_env()
 # fal.ai reads FAL_KEY from the environment; we expose it for status checks.
 FAL_KEY = os.environ.get("FAL_KEY", "")
 
-# Background-removal options selectable per batch. The product is cut out
-# (which removes the original shadow entirely) and a new, small, consistent
-# shadow is composited underneath.
-REMOVAL_MODELS = [
-    {"id": "bria", "label": "fal.ai BRIA (recommended)", "backend": "fal",
-     "model": "fal-ai/bria/background/remove"},
-    {"id": "birefnet", "label": "fal.ai BiRefNet", "backend": "fal",
-     "model": "fal-ai/birefnet"},
-    {"id": "rembg", "label": "Local rembg (free, offline)", "backend": "rembg",
-     "model": None},
-]
-
-
-def resolve_removal(removal_id: str) -> dict:
-    for m in REMOVAL_MODELS:
-        if m["id"] == removal_id:
-            return m
-    return REMOVAL_MODELS[0]
-
-
-# Generative models that paint a realistic shadow onto the white-background
-# cutout (used when shadow_mode == "ai"). All take a list of image URLs.
-SHADOW_MODELS = [
-    {"id": "fal-ai/gpt-image-1/edit-image", "label": "gpt-image-1 (ChatGPT image model)"},
-    {"id": "fal-ai/gemini-25-flash-image/edit", "label": "Nano Banana (Gemini 2.5 Flash Image)"},
-]
-
-# Default instruction for the generative shadow step.
-DEFAULT_SHADOW_PROMPT = (
-    "Add a small, soft, realistic drop shadow on the ground beneath the product, "
-    "lit from the upper left so the shadow falls gently to the lower right. "
-    "Keep the product and the plain white background unchanged. "
-    "Professional e-commerce product photo."
+# Default editing instruction sent to the generative model for every image.
+# Editable per batch on the confirmation screen, and per image during review.
+DEFAULT_PROMPT = (
+    "Remove the large soft drop shadow beneath and around the product and "
+    "replace it with only a small, subtle, tight contact shadow directly under "
+    "the product. Keep the product itself - its shape, packaging, label text and "
+    "colours - perfectly unchanged. Keep the plain light-grey studio background "
+    "clean and even. Photorealistic e-commerce product photo."
 )
 
+# Instruction-editing models selectable per batch (fal.ai endpoints).
+# `image_urls` lists models that take a list of images instead of `image_url`.
+EDIT_MODELS = [
+    {"id": "fal-ai/flux-pro/kontext", "label": "FLUX.1 Kontext [pro]"},
+    {"id": "fal-ai/flux-pro/kontext/max", "label": "FLUX.1 Kontext [max]"},
+    {"id": "fal-ai/flux-kontext/dev", "label": "FLUX.1 Kontext [dev] (cheaper)"},
+    {"id": "fal-ai/gemini-25-flash-image/edit", "label": "Nano Banana (Gemini 2.5 Flash Image)"},
+    {"id": "fal-ai/qwen-image-edit", "label": "Qwen Image Edit"},
+    {"id": "fal-ai/bytedance/seededit/v3/edit-image", "label": "SeedEdit 3.0"},
+]
+IMAGE_URLS_MODELS = {"fal-ai/gemini-25-flash-image/edit"}
 
 # Default processing configuration applied to a new batch.
 DEFAULT_CONFIG = {
-    "removal": "bria",            # id from REMOVAL_MODELS
-    "shadow_mode": "ai",          # "ai" (generative) | "composite" (programmatic)
-    "shadow_model": "fal-ai/gpt-image-1/edit-image",
-    "shadow_prompt": DEFAULT_SHADOW_PROMPT,
+    "fal_model": "fal-ai/flux-pro/kontext",
+    "prompt": DEFAULT_PROMPT,
     "output_format": "original",  # original | jpg | png | webp
-    "shadow": {
-        "direction": "left",      # light side: "left" casts shadow to the right
-        "skew": 0.45,             # horizontal lean (fraction of shadow height)
-        "length": 0.45,           # shadow height as fraction of product height
-        "opacity": 0.30,          # 0.0 - 1.0
-        "blur": 26,               # gaussian blur radius (softness)
-        "margin": 0.18,           # clean margin around product (fraction of size)
-        "bg_color": [255, 255, 255],
-    },
+    "guidance_scale": 3.5,        # used by models that support it (e.g. FLUX Kontext)
 }
 
 
