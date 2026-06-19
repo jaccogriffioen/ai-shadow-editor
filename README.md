@@ -8,6 +8,17 @@ It runs as a **local server** on your machine: files stay on your disk (no uploa
 batch state is saved in SQLite (resumable after any interruption), and the UI is a
 web app at `http://localhost:8000`.
 
+## Demos
+
+Short screen recordings in [`demos/`](demos/) (click to play on GitHub):
+
+- **[Generative editing approach](demos/demo-generative-models.mp4)** — the current
+  version: choose a fal.ai editing model and an editable prompt per batch.
+- **[Image-processing approach](demos/demo-image-processing.mp4)** — background
+  removal (BRIA / rembg) + a programmatic shadow composite. This is the version
+  tagged [`image-processing`](../../tree/image-processing); see
+  [Testing the image-processing approach](#testing-the-image-processing-approach).
+
 ## How it works
 
 For each image in a batch:
@@ -81,6 +92,27 @@ Then open **http://localhost:8000**.
    for a before/after view. Approve, flag/unflag, revert to original, or re-run a
    single image with a different prompt or model.
 6. **Export** approved images to a folder you choose. Originals are never modified.
+
+## Testing the image-processing approach
+
+An earlier approach — **background removal (BRIA / rembg) + a programmatic shadow
+composite** instead of a generative model — is preserved at the git tag
+**`image-processing`**. To run it:
+
+```bash
+pkill -f "uvicorn backend.main"     # stop any running server
+git checkout image-processing       # jump to that version (detached HEAD)
+
+venv/bin/uvicorn backend.main:app --port 8000
+# test at http://localhost:8000
+
+git checkout main                   # return to the latest (generative) version
+```
+
+`.env`, `data/`, and `venv/` are git-ignored, so switching versions never touches
+your key, database, or installed packages. `git checkout image-processing` leaves
+you in "detached HEAD" (normal for viewing an old commit) — `git checkout main`
+brings you back.
 
 ## Project layout
 
